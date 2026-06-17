@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Malware Scanner Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
+    <div class="container mx-auto p-6 max-w-5xl">
+        <header class="mb-8 border-b border-gray-700 pb-4">
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-wide">🛡️ GoWebServer Anti-Malware Engine</h1>
+            <p class="text-gray-400 text-sm mt-1">MVP високоефективного сканера веб-серверів Linux</p>
+        </header>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6 border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 text-gray-200">Параметри сканування</h2>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="scanPath" placeholder="Введіть абсолютний шлях (наприклад, /var/www/html)" 
+                       class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-4 py-2 focus:outline-none focus:border-emerald-500">
+                <button id="startBtn" onclick="startScan()" class="bg-emerald-600 hover:bg-emerald-500 font-bold px-6 py-2 rounded shadow transition">
+                    Запустити аналіз
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-gray-800 p-5 rounded-lg border border-gray-700 shadow-md">
+                <span class="text-gray-400 text-xs uppercase tracking-wider block">Поточний статус</span>
+                <span id="statusLabel" class="text-xl font-black text-yellow-500 mt-1 block">Idle</span>
+            </div>
+            <div class="bg-gray-800 p-5 rounded-lg border border-gray-700 shadow-md">
+                <span class="text-gray-400 text-xs uppercase tracking-wider block">Перевірено PHP файлів</span>
+                <span id="scannedCount" class="text-xl font-black text-blue-400 mt-1 block">0</span>
+            </div>
+            <div class="bg-gray-800 p-5 rounded-lg border border-gray-700 shadow-md">
+                <span class="text-gray-400 text-xs uppercase tracking-wider block">Знайдено загроз</span>
+                <span id="foundCount" class="text-xl font-black text-red-500 mt-1 block">0</span>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+            <div class="bg-gray-700 px-6 py-3 font-bold text-gray-200 border-b border-gray-600">
+                Виявлені інциденти безпеки
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-700/50 text-gray-400 text-xs uppercase">
+                            <th class="p-4">Файл</th>
+                            <th class="p-4">Danger Score</th>
+                            <th class="p-4">Спрацювання сигнатур</th>
+                            <th class="p-4">SHA256 хеш</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable" class="divide-y divide-gray-700 text-sm">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-gray-500">Загрози відсутні або сканування не запускалось</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pollInterval;
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('statusLabel').innerText = data.status;
+                    document.getElementById('scannedCount').innerText = data.files_scanned;
+                    document.getElementById('foundCount').innerText = data.viruses_found;
+
+                    if (data.status === 'Scanning') {
+                        document.getElementById('statusLabel').className = "text-xl font-black text-emerald-400 mt-1 block animate-pulse";
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('startBtn').className = "bg-gray-600 font-bold px-6 py-2 rounded shadow cursor-not-allowed";
+                    } else {
+                        document.getElementById('statusLabel').className = "text-xl font-black text-yellow-500 mt-1 block";
+                        document.getElementById('startBtn').disabled = false;
+                        document.getElementById('startBtn').className = "bg-emerald-600 hover:bg-emerald-500 font-bold px-6 py-2 rounded shadow transition";
+                        clearInterval(pollInterval);
+                        loadResults(); // Завантажити фінальні результати після завершення
+                    }
+                });
+        }
+
+        function startScan() {
+            const path = document.getElementById('scanPath').value.trim();
+            if(!path) {
+                alert("Вкажіть коректний шлях!");
+                return;
+            }
+
+            fetch('/api/scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({path: path})
+            }).then(res => {
+                if(res.ok) {
+                    pollInterval = setInterval(updateStatus, 1000);
+                    updateStatus();
+                } else {
+                    alert("Помилка ініціалізації: можливо сканування вже триває.");
+                }
+            });
+        }
+
+        function loadResults() {
+            fetch('/api/results')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('resultsTable');
+                    tbody.innerHTML = '';
+                    
+                    if(data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">Загроз не виявлено</td></tr>`;
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-700/30 transition text-gray-300";
+                        tr.innerHTML = `
+                            <td class="p-4 font-mono text-xs text-red-400 break-all">${item.file_path}</td>
+                            <td class="p-4"><span class="bg-red-900/50 text-red-400 border border-red-700 px-2 py-0.5 rounded font-bold">${item.danger_score}</span></td>
+                            <td class="p-4 text-xs text-gray-400">${item.matches.join(', ')}</td>
+                            <td class="p-4 font-mono text-xs text-gray-500 break-all">${item.sha256}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
