@@ -29,8 +29,7 @@ mkdir -p /tmp/scanner_install
 cd /tmp/scanner_install
 
 # Автоматичне завантаження скомпільованого релізу з твого GitHub
-# ЗАМІНИ ТВІЙ_НІК НА СВІЙ РЕАЛЬНИЙ НІК НА ГІТХАБІ
-GITHUB_USER="ТВІЙ_НІК"
+GITHUB_USER="yaroslavytm-oss"
 RELEASE_URL="https://github.com/${GITHUB_USER}/go-web-scanner/releases/latest/download/web-scanner"
 
 echo "[*] Завантаження з: ${RELEASE_URL}"
