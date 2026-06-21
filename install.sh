@@ -17,8 +17,22 @@ update() {
     echo "[+] Оновлено!"
     exit 0
 }
+uninstall() {
+    echo "[*] Видалення служби web-scanner..."
+    systemctl stop web-scanner 2>/dev/null || true
+    systemctl disable web-scanner 2>/dev/null || true
+    rm -f /etc/systemd/system/web-scanner.service
+    systemctl daemon-reload
+    
+    echo "[*] Видалення бінарного файлу..."
+    rm -f /usr/local/bin/web-scanner
+    
+    echo "[+] Службу та бінарний файл успішно видалено."
+    exit 0
+}
 
 if [[ "$1" == "--update" ]]; then update; fi
+if [[ "$1" == "--uninstall" ]]; then uninstall; fi
 
 # Використовуємо /dev/tty для читання вибору, щоб це працювало і через curl | bash
 echo "Виберіть режим встановлення:"
