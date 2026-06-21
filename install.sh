@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Налаштування
 PORT=9999
 GITHUB_USER="yaroslavytm-oss"
 RELEASE_URL="https://github.com/${GITHUB_USER}/go-web-scanner/releases/latest/download/web-scanner"
@@ -10,24 +9,24 @@ echo -e "\033[0;32m==================================================\033[0m"
 echo -e "\033[1;32m  Go Anti-Malware Engine Setup \033[0m"
 echo -e "\033[0;32m==================================================\033[0m"
 
-# Функція оновлення, яка замінює бінарник "на льоту"
-	update() {
-    	  echo "[*] Зупинка служби..."
-    	  systemctl stop web-scanner
-    	  echo "[*] Завантаження нової версії..."
-    	  curl -L "https://github.com/yaroslavytm-oss/go-web-scanner/releases/latest/download/web-scanner" -o /usr/local/bin/web-scanner
-   	  chmod +x /usr/local/bin/web-scanner
-    	  systemctl start web-scanner
-    	  echo "[+] Оновлено!"
-	}
+update() {
+    systemctl stop web-scanner 2>/dev/null || true
+    curl -L "${RELEASE_URL}" -o /usr/local/bin/web-scanner
+    chmod +x /usr/local/bin/web-scanner
+    systemctl start web-scanner
+    echo "[+] Оновлено!"
+    exit 0
+}
 
 if [[ "$1" == "--update" ]]; then update; fi
 
+# Використовуємо /dev/tty для читання вибору, щоб це працювало і через curl | bash
 echo "Виберіть режим встановлення:"
 echo "1) Як системна служба (Daemon)"
 echo "2) Тільки виконуваний файл (Portable)"
 echo -n "Ваш вибір [1-2]: "
-read mode < /dev/tty
+read -n 1 mode < /dev/tty
+echo ""
 
 if [ "$mode" == "1" ]; then
     echo "[*] Завантаження та встановлення служби..."
@@ -56,11 +55,8 @@ elif [ "$mode" == "2" ]; then
     echo "[*] Завантаження файлу в поточну директорію..."
     curl -L "${RELEASE_URL}" -o web-scanner
     chmod +x web-scanner
-    
-    echo -e "\033[1;36mФайл завантажено. Як користуватися:\033[0m"
-    echo "./web-scanner --mode=ui --addr=0.0.0.0:${PORT}"
-    echo "Більше деталей: https://github.com/${GITHUB_USER}/go-web-scanner"
+    echo -e "\033[1;36mФайл завантажено. Запуск: ./web-scanner --mode=ui --addr=0.0.0.0:${PORT}\033[0m"
 else
-    echo "Невірний вибір."
+    echo -e "\n\033[0;31mНевірний вибір. Введіть 1 або 2.\033[0m"
     exit 1
 fi
