@@ -1,0 +1,5 @@
+[
+    {"Name": "Suspicious Eval", "Regex": "eval\\s*\\(\\s*\\$(?:_POST|_GET|_REQUEST)", "Score": 80},
+    {"Name": "Remote Downloader", "Regex": "file_get_contents\\s*\\(\\s*['\"]https?://", "Score": 70},
+    {"Name": "Base64 Execution", "Regex": "(?:exec|shell_exec|system)\\s*\\(\\s*base64_decode", "Score": 90}
+]

@@ -10,15 +10,16 @@ echo -e "\033[0;32m==================================================\033[0m"
 echo -e "\033[1;32m  Go Anti-Malware Engine Setup \033[0m"
 echo -e "\033[0;32m==================================================\033[0m"
 
-update() {
-    echo "[*] Оновлення сканера..."
-    systemctl stop web-scanner 2>/dev/null || true
-    curl -L "${RELEASE_URL}" -o /usr/local/bin/web-scanner
-    chmod +x /usr/local/bin/web-scanner
-    systemctl start web-scanner
-    echo "[+] Оновлено успішно!"
-    exit 0
-}
+# Функція оновлення, яка замінює бінарник "на льоту"
+	update() {
+    	  echo "[*] Зупинка служби..."
+    	  systemctl stop web-scanner
+    	  echo "[*] Завантаження нової версії..."
+    	  curl -L "https://github.com/yaroslavytm-oss/go-web-scanner/releases/latest/download/web-scanner" -o /usr/local/bin/web-scanner
+   	  chmod +x /usr/local/bin/web-scanner
+    	  systemctl start web-scanner
+    	  echo "[+] Оновлено!"
+	}
 
 if [[ "$1" == "--update" ]]; then update; fi
 
