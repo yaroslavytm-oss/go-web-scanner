@@ -26,7 +26,8 @@ if [[ "$1" == "--update" ]]; then update; fi
 echo "Виберіть режим встановлення:"
 echo "1) Як системна служба (Daemon)"
 echo "2) Тільки виконуваний файл (Portable)"
-read -p "Ваш вибір [1-2]: " mode
+echo -n "Ваш вибір [1-2]: "
+read mode < /dev/tty
 
 if [ "$mode" == "1" ]; then
     echo "[*] Завантаження та встановлення служби..."
