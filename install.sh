@@ -10,6 +10,7 @@ echo -e "\033[1;32m  Go Anti-Malware Engine Setup \033[0m"
 echo -e "\033[0;32m==================================================\033[0m"
 
 update() {
+    echo "[*] Оновлення..."
     systemctl stop web-scanner 2>/dev/null || true
     curl -L "${RELEASE_URL}" -o /usr/local/bin/web-scanner
     chmod +x /usr/local/bin/web-scanner
@@ -17,37 +18,37 @@ update() {
     echo "[+] Оновлено!"
     exit 0
 }
+
 uninstall() {
-    echo "[*] Видалення служби web-scanner..."
+    echo "[*] Видалення служби..."
     systemctl stop web-scanner 2>/dev/null || true
     systemctl disable web-scanner 2>/dev/null || true
     rm -f /etc/systemd/system/web-scanner.service
     systemctl daemon-reload
-    
-    echo "[*] Видалення бінарного файлу..."
     rm -f /usr/local/bin/web-scanner
-    
     echo "[+] Службу та бінарний файл успішно видалено."
     exit 0
 }
 
+# Обробка аргументів (якщо запуск через CLI)
 if [[ "$1" == "--update" ]]; then update; fi
 if [[ "$1" == "--uninstall" ]]; then uninstall; fi
 
-# Використовуємо /dev/tty для читання вибору, щоб це працювало і через curl | bash
-echo "Виберіть режим встановлення:"
-echo "1) Як системна служба (Daemon)"
-echo "2) Тільки виконуваний файл (Portable)"
-echo -n "Ваш вибір [1-2]: "
+# Інтерактивне меню
+echo "Виберіть дію:"
+echo "1) Встановити/Перевстановити службу"
+echo "2) Встановити як Portable файл"
+echo "3) Видалити службу та файл"
+echo -n "Ваш вибір [1-3]: "
 read -n 1 mode < /dev/tty
 echo ""
 
-if [ "$mode" == "1" ]; then
-    echo "[*] Завантаження та встановлення служби..."
-    curl -L "${RELEASE_URL}" -o /usr/local/bin/web-scanner
-    chmod +x /usr/local/bin/web-scanner
-
-    cat <<EOF > /etc/systemd/system/web-scanner.service
+case $mode in
+    1)
+        echo "[*] Встановлення служби..."
+        curl -L "${RELEASE_URL}" -o /usr/local/bin/web-scanner
+        chmod +x /usr/local/bin/web-scanner
+        cat <<EOF > /etc/systemd/system/web-scanner.service
 [Unit]
 Description=GoWebServer Anti-Malware Engine
 After=network.target
@@ -60,17 +61,22 @@ User=root
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload
-    systemctl enable web-scanner
-    systemctl restart web-scanner
-    echo -e "\033[1;32m[+] Службу запущено на порті ${PORT}\033[0m"
-
-elif [ "$mode" == "2" ]; then
-    echo "[*] Завантаження файлу в поточну директорію..."
-    curl -L "${RELEASE_URL}" -o web-scanner
-    chmod +x web-scanner
-    echo -e "\033[1;36mФайл завантажено. Запуск: ./web-scanner --mode=ui --addr=0.0.0.0:${PORT}\033[0m"
-else
-    echo -e "\n\033[0;31mНевірний вибір. Введіть 1 або 2.\033[0m"
-    exit 1
-fi
+        systemctl daemon-reload
+        systemctl enable web-scanner
+        systemctl restart web-scanner
+        echo -e "\033[1;32m[+] Готово! Служба на порту ${PORT}\033[0m"
+        ;;
+    2)
+        echo "[*] Завантаження в поточну папку..."
+        curl -L "${RELEASE_URL}" -o web-scanner
+        chmod +x web-scanner
+        echo -e "\033[1;36mГотово! Запуск: ./web-scanner --mode=ui --addr=0.0.0.0:${PORT}\033[0m"
+        ;;
+    3)
+        uninstall
+        ;;
+    *)
+        echo -e "\033[0;31mНевірний вибір. Введіть 1, 2 або 3.\033[0m"
+        exit 1
+        ;;
+esac
