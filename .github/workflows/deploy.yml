@@ -62,6 +62,6 @@ jobs:
             docker run -d \
               --name web-scanner \
               --restart unless-stopped \
-              -p 8080:8080 \
+              -p 8088:8088 \
               ghcr.io/yaroslavytm-oss/go-web-scanner:latest
             docker system prune -f
